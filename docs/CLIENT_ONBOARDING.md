@@ -219,13 +219,12 @@ export OLLIE_AGENT_ID=...
 export OLLIE_BASE_URL=...
 export OLLIE_INGEST_BASE_URL=...
 python examples/sdk_test_agent_loop.py
+
+# Production path (persist + index queue):
+OLLIE_SDK_FLUSH=ingest python examples/sdk_test_agent_loop.py
 ```
 
-For ingest, set `OLLIE_SDK_PROCESS` unset and change the example to call `flush_ingest()` or run:
-
-```bash
-# Edit loop to flush_ingest, or use simulated agent with ingest flag
-```
+`OLLIE_SDK_FLUSH` values: `validate` (default), `process`, `ingest`.
 
 Expect HTTP **200** from batch POST. Traces appear in Ollie UI after the ingest worker processes the queue (usually within a minute).
 
