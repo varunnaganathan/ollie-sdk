@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ollie-sdk"
+version = "0.1.0"
+description = "Ollie instrumentation SDK — Interaction, Feature, Span, Signal"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-httpx>=0.30.0",
+]
+simulation = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ollie"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "e2e: end-to-end tests (collector HTTP or simulated agent + backend process)",
+    "integration: requires PostgreSQL DATABASE_URL (simulated-agent live e2e)",
+    "openai: calls OpenAI (needs OPENAI_API_KEY)",
+]

@@ -1,0 +1,18 @@
+{
+  "interactions": [
+    {
+      "interaction_index": 0,
+      "input_role": "planner",
+      "output_role": "browser",
+      "features": {
+        "retry_count": 3,
+        "discount_denied": true
+      },
+      "extras": {
+        "attribution": {
+          "user_tier": "enterprise"
+        }
+      }
+    }
+  ]
+}

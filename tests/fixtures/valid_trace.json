@@ -1,0 +1,39 @@
+{
+  "validate_payload": {
+    "sdk": { "name": "ollie-sdk", "version": "0.1.0" },
+    "agent_id": "agent_sdk_test_pytest",
+    "conversation_id": "task-golden-1",
+    "interactions": [
+      {
+        "source": "planner",
+        "target": "browser",
+        "input": "go to checkout",
+        "output": "opening browser",
+        "started_at": "2026-05-01T10:00:00Z",
+        "ended_at": "2026-05-01T10:00:05Z",
+        "features": [
+          { "name": "retry_count", "value": 3 },
+          { "name": "discount_denied", "value": true },
+          { "name": "user_tier", "value": "enterprise" }
+        ],
+        "spans": [
+          {
+            "kind": "retrieval",
+            "started_at": "2026-05-01T10:00:01Z",
+            "ended_at": "2026-05-01T10:00:02Z",
+            "parent_span_ref": null,
+            "payload": {}
+          },
+          {
+            "kind": "checkout_validation",
+            "span_ref": "sp_cv",
+            "started_at": "2026-05-01T10:00:02Z",
+            "ended_at": "2026-05-01T10:00:04Z",
+            "parent_span_ref": null,
+            "payload": {}
+          }
+        ]
+      }
+    ]
+  }
+}
