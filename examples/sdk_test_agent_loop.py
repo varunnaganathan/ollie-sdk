@@ -13,6 +13,7 @@ def main() -> int:
     client = ollie.Client(
         api_key=os.getenv("OLLIE_API_KEY", "sdk-test-key-1"),
         base_url=os.getenv("OLLIE_BASE_URL", "http://127.0.0.1:8001"),
+        ingest_base_url=os.getenv("OLLIE_INGEST_BASE_URL", "http://127.0.0.1:8002"),
         agent_id=os.getenv("OLLIE_AGENT_ID", "agent_sdk_test_1"),
     )
 
@@ -42,10 +43,14 @@ def main() -> int:
         with ix.span("checkout_validation"):
             pass
 
-    if os.getenv("OLLIE_SDK_PROCESS", "").strip().lower() in ("1", "true", "yes"):
+    mode = os.getenv("OLLIE_SDK_FLUSH", "validate").strip().lower()
+    if mode in ("process", "compile"):
         result = trace.flush_process()
         n_ix = len(result.get("interactions") or [])
         print(f"Process OK interactions={n_ix}", file=sys.stderr)
+    elif mode in ("ingest", "persist"):
+        result = trace.flush_ingest()
+        print(f"Ingest OK queued={result.get('queued')}", file=sys.stderr)
     else:
         trace.flush()
         print("Validate OK", file=sys.stderr)

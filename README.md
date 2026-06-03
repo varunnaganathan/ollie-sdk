@@ -2,6 +2,8 @@
 
 Instrumentation SDK for Ollie Sentry — trace sessions, features, spans, signals, and batched delivery to the ingest service.
 
+**New customer?** See **[docs/CLIENT_ONBOARDING.md](docs/CLIENT_ONBOARDING.md)** (env vars, instrumentation, production checklist).
+
 ## Install
 
 From GitHub (recommended for production pins):
