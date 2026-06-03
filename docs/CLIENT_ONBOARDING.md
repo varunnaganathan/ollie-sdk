@@ -30,6 +30,8 @@ Optional tuning (defaults are fine for most agents):
 
 Python **3.10+** required.
 
+The [ollie-sdk](https://github.com/varunnaganathan/ollie-sdk) repository is **public** — no GitHub token is needed for `pip install` from git.
+
 ```bash
 pip install "git+https://github.com/varunnaganathan/ollie-sdk.git@v0.1.0#egg=ollie-sdk"
 ```
