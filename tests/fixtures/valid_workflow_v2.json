@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "sdk": { "name": "ollie-sdk", "version": "0.2.0" },
+  "agent_id": "agent_sdk_test_pytest",
+  "session_id": "session-golden-v2",
+  "workflow": {
+    "name": "Research Competitors",
+    "status": "completed",
+    "started_at": "2026-06-02T10:00:00+00:00",
+    "ended_at": "2026-06-02T10:00:05+00:00"
+  },
+  "interactions": [
+    {
+      "interaction_ref": "ix_0",
+      "parent_interaction_ref": null,
+      "name": "Research Competitors",
+      "primitive": null,
+      "input": "Find competitor SEC filings",
+      "output": "12 documents",
+      "events": [],
+      "attributes": [],
+      "started_at": "2026-06-02T10:00:00+00:00",
+      "ended_at": "2026-06-02T10:00:05+00:00"
+    },
+    {
+      "interaction_ref": "ix_1",
+      "parent_interaction_ref": "ix_0",
+      "name": "Search Sources",
+      "primitive": "external_interaction",
+      "input": "Find SEC filings",
+      "output": "6 docs from Google",
+      "events": [
+        { "name": "search_started", "at": "2026-06-02T10:00:01+00:00" },
+        { "name": "retry", "at": "2026-06-02T10:00:02+00:00" }
+      ],
+      "attributes": [{ "name": "latency_ms", "value": 842 }],
+      "started_at": "2026-06-02T10:00:01+00:00",
+      "ended_at": "2026-06-02T10:00:03+00:00"
+    },
+    {
+      "interaction_ref": "ix_2",
+      "parent_interaction_ref": "ix_1",
+      "name": "Google",
+      "primitive": "external_interaction",
+      "input": null,
+      "output": "6 docs",
+      "events": [{ "name": "retry", "at": "2026-06-02T10:00:02+00:00" }],
+      "attributes": [],
+      "started_at": "2026-06-02T10:00:02+00:00",
+      "ended_at": "2026-06-02T10:00:03+00:00"
+    }
+  ]
+}

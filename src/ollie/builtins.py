@@ -3,6 +3,16 @@
 BUILTIN_SPAN_TYPES = frozenset(
     {"llm_call", "retrieval", "tool_call", "web_search", "db_query", "browser_session"}
 )
+BUILTIN_PRIMITIVES = frozenset(
+    {
+        "external_interaction",
+        "delegation",
+        "state_mutation",
+        "verification",
+        "generation",
+    }
+)
+
 BUILTIN_FEATURE_NAMES = frozenset(
     {
         "retry_count",

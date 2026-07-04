@@ -17,6 +17,9 @@ def new_event_id() -> str:
 
 
 def session_id_from_payload(payload: dict[str, Any]) -> str:
+    sid = str(payload.get("session_id") or "").strip()
+    if sid:
+        return sid
     cid = str(payload.get("conversation_id") or "").strip()
     if cid:
         return cid

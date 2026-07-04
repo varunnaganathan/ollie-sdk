@@ -33,10 +33,12 @@ Python **3.10+** required.
 The [ollie-sdk](https://github.com/varunnaganathan/ollie-sdk) repository is **public** — no GitHub token is needed for `pip install` from git.
 
 ```bash
-pip install "git+https://github.com/varunnaganathan/ollie-sdk.git@v0.1.0#egg=ollie-sdk"
+pip install "ollie-sdk[tracing] @ git+https://github.com/varunnaganathan/ollie-sdk.git@v0.2.0"
 ```
 
 Pin the tag in `requirements.txt` or lockfile so upgrades are deliberate.
+
+**v0.2.0** adds workflow v2 (`client.workflow`), auto LLM instrumentation (`tracing=True` for OpenAI / Anthropic / Gemini), `ollie.tool`, and ADK-shaped `events.trigger` / `events.context` / `events.spans`. See the [README](../README.md) and backend guide [ollie-sdk-python.md](https://github.com/varunnaganathan/olliejudge-sentry-backend/blob/main/integrations/docs/customers/ollie-sdk-python.md).
 
 ---
 

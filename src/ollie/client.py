@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Iterable, Sequence
 
 from ollie.delivery import DeliveryConfig, DeliveryPipeline
+from ollie.instruments import Instruments
+from ollie.session import SessionContext
 from ollie.transport import Transport
 from ollie.trace import TraceSession
+from ollie.workflow import WorkflowSession
 
 
 class Client:
@@ -17,6 +20,12 @@ class Client:
         ingest_base_url: str | None = None,
         agent_id: str | None = None,
         delivery_config: DeliveryConfig | None = None,
+        tracing: bool = False,
+        instruments: Iterable[Instruments | str] | None = None,
+        block_instruments: Iterable[Instruments | str] | None = None,
+        auto_instrument: bool = True,
+        providers: Sequence[str] | None = None,
+        capture_content: bool = True,
     ):
         self.api_key = (api_key or os.getenv("OLLIE_API_KEY") or "").strip()
         if base_url is not None:
@@ -25,15 +34,12 @@ class Client:
             self.base_url = (os.getenv("OLLIE_BASE_URL") or "http://127.0.0.1:8001").strip()
         if ingest_base_url is not None:
             self.ingest_base_url = ingest_base_url.strip()
+        elif base_url is not None:
+            # Explicit base_url alone → same host for registry + batch (tests/collector)
+            self.ingest_base_url = self.base_url
         else:
             env_ingest = (os.getenv("OLLIE_INGEST_BASE_URL") or "").strip()
-            if env_ingest:
-                self.ingest_base_url = env_ingest
-            elif base_url is not None:
-                # Tests/collector: single host for registry + batch
-                self.ingest_base_url = self.base_url
-            else:
-                self.ingest_base_url = "http://127.0.0.1:8002"
+            self.ingest_base_url = env_ingest or "http://127.0.0.1:8002"
         self.agent_id = (agent_id or os.getenv("OLLIE_AGENT_ID") or "").strip()
         if not self.api_key:
             raise ValueError("OLLIE_API_KEY or api_key is required")
@@ -49,6 +55,23 @@ class Client:
             config=delivery_config,
             sdk_meta=self._transport.sdk_meta,
         )
+        self._session_id: str | None = None
+        self.tracing = bool(tracing)
+        self.instruments = instruments
+        self.block_instruments = block_instruments
+        self.auto_instrument = bool(auto_instrument)
+        self.providers = list(providers) if providers is not None else None
+        self.capture_content = bool(capture_content)
+        if self.tracing:
+            from ollie.tracing import install
+
+            install(
+                instruments=self.instruments,
+                block_instruments=self.block_instruments,
+                auto_instrument=self.auto_instrument,
+                providers=self.providers,
+                capture_content=self.capture_content,
+            )
 
     @property
     def delivery(self) -> DeliveryPipeline:
@@ -62,6 +85,13 @@ class Client:
 
     def shutdown(self) -> None:
         self._delivery.shutdown()
+        if self.tracing:
+            try:
+                from ollie.tracing import uninstall
+
+                uninstall()
+            except Exception:
+                pass
 
     def define_feature(
         self,
@@ -96,5 +126,19 @@ class Client:
         if resp.get("_conflict"):
             return
 
+    def session(self, session_id: str) -> SessionContext:
+        return SessionContext(self, session_id)
+
+    def workflow(
+        self,
+        *,
+        name: str,
+        input: str | None = None,
+    ) -> WorkflowSession:
+        return WorkflowSession(self, name=name, input=input)
+
     def trace(self, *, conversation_id: str | None = None) -> TraceSession:
+        """Legacy v1 trace (dialogue turns + nested spans). Prefer workflow() for v2."""
+        if conversation_id:
+            self._session_id = conversation_id
         return TraceSession(self, conversation_id=conversation_id)

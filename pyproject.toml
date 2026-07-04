@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ollie-sdk"
-version = "0.1.0"
-description = "Ollie instrumentation SDK — Interaction, Feature, Span, Signal"
+version = "0.2.0"
+description = "Ollie instrumentation SDK — Workflow, Interaction, attributes, events"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -21,6 +21,13 @@ simulation = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
 ]
+tracing = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-instrumentation-openai>=0.33",
+    "opentelemetry-instrumentation-anthropic>=0.33",
+    "opentelemetry-instrumentation-google-genai>=0.7b0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ollie"]
@@ -32,4 +39,7 @@ markers = [
     "e2e: end-to-end tests (collector HTTP or simulated agent + backend process)",
     "integration: requires PostgreSQL DATABASE_URL (simulated-agent live e2e)",
     "openai: calls OpenAI (needs OPENAI_API_KEY)",
+    "anthropic: calls Anthropic (needs ANTHROPIC_API_KEY)",
+    "gemini: calls Gemini (needs GEMINI_API_KEY or GOOGLE_API_KEY)",
+    "tracing: requires ollie-sdk[tracing] optional deps",
 ]

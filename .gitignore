@@ -1,5 +1,6 @@
 .env
 .env.*
+app.log
 __pycache__/
 *.py[cod]
 .Python

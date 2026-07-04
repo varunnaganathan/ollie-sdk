@@ -32,10 +32,12 @@ from simulated_agent.cases import get_case  # noqa: E402
 from simulated_agent.registry import ensure_registry  # noqa: E402
 from simulated_agent.validators import (  # noqa: E402
     assert_full_coverage,
+    assert_interaction_tree,
     assert_mapping_fidelity,
     assert_reconstructed_complete,
     assert_triple_run_variance,
 )
+from ollie.tree import render_interaction_tree  # noqa: E402
 
 
 def _print_span_summary(interactions: list[dict]) -> None:
@@ -71,7 +73,9 @@ def main() -> int:
     p.add_argument("--print-normalized", action="store_true")
     p.add_argument("--print-spans", action="store_true")
     p.add_argument("--print-diff", action="store_true")
-    p.add_argument("--validate", action="store_true", help="run V2-V4 validators locally")
+    p.add_argument("--print-tree", action="store_true", help="print v2 interaction tree from wire payload")
+    p.add_argument("--local-only", action="store_true", help="skip flush; validate wire payload locally")
+    p.add_argument("--validate", action="store_true", help="run validators locally")
     p.add_argument("--print-registry", action="store_true", help="print signal_registry + manifest_preview")
     args = p.parse_args()
 
@@ -80,7 +84,8 @@ def main() -> int:
         base_url=os.getenv("OLLIE_BASE_URL", "http://127.0.0.1:8001"),
         agent_id=os.getenv("OLLIE_AGENT_ID", "agent_sdk_test_1"),
     )
-    ensure_registry(client)
+    if not args.local_only:
+        ensure_registry(client)
     case = get_case(args.case)
 
     if args.triple_run:
@@ -88,7 +93,9 @@ def main() -> int:
         manifests = []
         last_result = None
         for s in seeds:
-            last_result, m = run_simulation(client, case=case, seed=s)
+            last_result, m = run_simulation(
+                client, case=case, seed=s, local_only=args.local_only
+            )
             manifests.append(m)
         if args.print_diff:
             _print_triple_diff(manifests)
@@ -97,7 +104,21 @@ def main() -> int:
         result = last_result
         manifest = manifests[-1]
     else:
-        result, manifest = run_simulation(client, case=case, seed=args.seed)
+        result, manifest = run_simulation(
+            client, case=case, seed=args.seed, local_only=args.local_only
+        )
+
+    if args.local_only and manifest.wire_payload:
+        if args.validate:
+            assert_interaction_tree(manifest.wire_payload, manifest)
+        if args.print_tree:
+            print(render_interaction_tree(manifest.wire_payload), file=sys.stderr)
+        print(
+            f"OK case={args.case} local_only=True interactions="
+            f"{len(manifest.wire_payload.get('interactions') or [])}",
+            file=sys.stderr,
+        )
+        return 0
 
     if not result.get("accepted"):
         print(json.dumps(result, indent=2), file=sys.stderr)
@@ -119,6 +140,8 @@ def main() -> int:
         print(json.dumps(result.get("interactions"), indent=2))
     if args.print_spans:
         _print_span_summary(result.get("interactions") or [])
+    if args.print_tree and manifest.wire_payload:
+        print(render_interaction_tree(manifest.wire_payload), file=sys.stderr)
     if args.print_registry:
         print(json.dumps(
             {

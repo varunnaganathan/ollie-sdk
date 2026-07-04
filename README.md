@@ -9,7 +9,13 @@ Instrumentation SDK for Ollie Sentry — trace sessions, features, spans, signal
 From GitHub (recommended for production pins):
 
 ```bash
-pip install "git+https://github.com/varunnaganathan/ollie-sdk.git@v0.1.0#egg=ollie-sdk"
+pip install "ollie-sdk[tracing] @ git+https://github.com/varunnaganathan/ollie-sdk.git@v0.2.0"
+```
+
+Core only (no auto LLM instrumentation):
+
+```bash
+pip install "ollie-sdk @ git+https://github.com/varunnaganathan/ollie-sdk.git@v0.2.0"
 ```
 
 Local development:
@@ -49,30 +55,88 @@ export OLLIE_INGEST_BASE_URL=http://127.0.0.1:8002   # POST /v1/sdk/events/batch
 export OLLIE_AGENT_ID=agent_sdk_test_1
 ```
 
-## Usage
+## Usage (workflow v2)
 
 ```python
 import ollie
 
 client = ollie.Client()
 
-client.define_feature("user_tier", kind="attribution", description="Tier", type="categorical", allowed_values=["free", "enterprise"])
-client.define_span_type("checkout_validation", description="Checkout validation step")
-client.define_signal("User Frustration", description="User dissatisfaction")
+with client.workflow(name="Answer ticket", input=user_msg) as wf:
+    with ollie.tool("lookup_policy", input=ticket_id) as t:
+        t.output = policy_text
+    wf.output = "done"
 
-with client.trace(conversation_id="task-1") as trace:
-    with trace.interaction(source="user", target="agent") as ix:
-        ix.feature("retry_count", 3)
-        ix.feature("user_tier", "enterprise")
-        with ix.span("tool_call", name="browser.open"):
-            pass
-
-result = trace.flush()  # validate via event batch (batch-of-1)
-# result = trace.flush_process()
-# result = trace.flush_ingest()  # persist + index queue
-
-client.shutdown()  # flush any buffered events
+payload = wf.to_validate_payload()
+# wf.flush_ingest()
+client.shutdown()
 ```
+
+Legacy v1 (`client.trace()` + dialogue interactions + nested spans) remains available.
+
+## Experimental: auto LLM instrumentation
+
+Optional extra — **not required** for core SDK. Uses OpenTelemetry provider instrumentors internally (OpenAI, Anthropic, Gemini); customers never import OTel. LLM calls become `generation` interactions under the active workflow. Manual `ollie.tool` covers blind spots.
+
+```bash
+pip install -e ".[tracing,simulation]"
+pip install anthropic google-genai   # only the client SDKs you use
+```
+
+```python
+from ollie import Instruments
+import ollie
+
+# Default: auto-instrument all supported libraries that are installed
+ollie.init(tracing=True)
+
+# Only Anthropic
+ollie.init(tracing=True, instruments={Instruments.ANTHROPIC})
+
+# Everything except OpenAI
+ollie.init(tracing=True, block_instruments={Instruments.OPENAI})
+
+# Disable all auto LLM spans (manual workflow/tool still works)
+ollie.init(tracing=True, auto_instrument=False)
+```
+
+```python
+from openai import OpenAI
+import ollie
+from ollie import Instruments
+
+client = ollie.init(tracing=True, instruments={Instruments.OPENAI})
+oai = OpenAI()
+
+with client.workflow(name="Auto OpenAI Demo", input=msg) as wf:
+    r = oai.chat.completions.create(model="gpt-4o-mini", messages=[...])  # auto
+    with ollie.tool("math.add", input="15+27") as t:
+        t.output = "42"
+    wf.output = r.choices[0].message.content
+```
+
+Sample agent (`--provider openai|anthropic|gemini`):
+
+```bash
+PYTHONPATH=src:examples python examples/auto_llm_agent/run.py --provider gemini --print-tree --validate
+```
+
+Workflows finalize ADK-compatible `events` on each interaction:
+
+```json
+{
+  "trigger": [],
+  "context": [{ "name": "used_tool" }],
+  "spans": [
+    { "type": "llm", "name": "openai.chat", "status": "success", "span_ref": "ix_1", "parent_span_ref": "ix_0" },
+    { "type": "tool", "name": "math.add", "status": "success", "span_ref": "ix_2", "parent_span_ref": "ix_0" }
+  ]
+}
+```
+
+Default context signals (same for OpenAI / Anthropic / Gemini) include language defaults (`llm_error`, `tool_error`, `used_tool`, `high_latency`, `output_truncated`, `safety_stop`, `tool_loop`, `runtime_failure`, `empty_final_response`, `repeated_tool_error`) plus AI-SDK signals (`llm_empty_input`, `llm_empty_output`, `llm_provider_error_rate`, `llm_token_blowup`, `io_error_in_output`). Spans carry only `type` / `name` / `status` / `span_ref` for cold-path auto-fix.
+
+`providers=["openai"]` remains as a legacy alias for `instruments={Instruments.OPENAI}`. Do not tag a release for this path until ready.
 
 ## Layer 1 delivery (buffer, gzip, retry)
 
