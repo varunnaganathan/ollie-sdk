@@ -13,3 +13,7 @@ build/
 .mypy_cache/
 .ruff_cache/
 *.egg
+
+# TypeScript (@ollie/sdk in packages/ts)
+packages/ts/node_modules/
+packages/ts/dist/

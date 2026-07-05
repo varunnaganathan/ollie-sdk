@@ -1,0 +1,70 @@
+{
+  "name": "@ollie/sdk",
+  "version": "0.2.0",
+  "description": "Ollie instrumentation SDK for TypeScript/Node (v2 workflow + auto LLM tracing)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "example": "tsx examples/auto_llm_agent/run.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/instrumentation": "^0.57.0",
+    "@opentelemetry/instrumentation-openai": "^0.14.0",
+    "@opentelemetry/resources": "^2.0.0",
+    "@opentelemetry/sdk-trace": "^2.0.0",
+    "@opentelemetry/sdk-trace-base": "^2.0.0",
+    "@opentelemetry/sdk-trace-node": "^2.0.0",
+    "@traceloop/instrumentation-anthropic": "^0.27.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": { "optional": true },
+    "@opentelemetry/instrumentation": { "optional": true },
+    "@opentelemetry/instrumentation-openai": { "optional": true },
+    "@opentelemetry/resources": { "optional": true },
+    "@opentelemetry/sdk-trace": { "optional": true },
+    "@opentelemetry/sdk-trace-base": { "optional": true },
+    "@opentelemetry/sdk-trace-node": { "optional": true },
+    "@traceloop/instrumentation-anthropic": { "optional": true }
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/instrumentation": "^0.57.0",
+    "@opentelemetry/instrumentation-openai": "^0.14.0",
+    "@opentelemetry/resources": "^2.0.0",
+    "@opentelemetry/sdk-trace": "^2.0.0",
+    "@opentelemetry/sdk-trace-base": "^2.0.0",
+    "@opentelemetry/sdk-trace-node": "^2.0.0",
+    "@traceloop/instrumentation-anthropic": "^0.27.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "keywords": [
+    "ollie",
+    "observability",
+    "llm",
+    "tracing",
+    "ai-agents"
+  ],
+  "license": "MIT"
+}

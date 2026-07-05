@@ -6,6 +6,8 @@ Instrumentation SDK for Ollie Sentry — trace sessions, features, spans, signal
 
 ## Install
 
+### Python
+
 From GitHub (recommended for production pins):
 
 ```bash
@@ -18,12 +20,28 @@ Core only (no auto LLM instrumentation):
 pip install "ollie-sdk @ git+https://github.com/varunnaganathan/ollie-sdk.git@v0.2.0"
 ```
 
-Local development:
+### TypeScript (`@ollie/sdk`)
+
+Same repo, subdirectory install:
+
+```bash
+npm install "github:varunnaganathan/ollie-sdk#v0.2.0:packages/ts"
+```
+
+See [packages/ts/README.md](packages/ts/README.md) for tracing peer deps and `initAsync` usage.
+
+### Local development
 
 ```bash
 git clone git@github.com:varunnaganathan/ollie-sdk.git
 cd ollie-sdk
 pip install -e ".[dev]"
+```
+
+TypeScript:
+
+```bash
+cd packages/ts && npm install && npm test
 ```
 
 ## Configure
