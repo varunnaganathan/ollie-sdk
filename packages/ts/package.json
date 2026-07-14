@@ -1,6 +1,6 @@
 {
   "name": "@ollie/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Ollie instrumentation SDK for TypeScript/Node (v2 workflow + auto LLM tracing)",
   "type": "module",
   "main": "./dist/index.js",

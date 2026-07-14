@@ -44,21 +44,23 @@ def _ix(
     }
 
 
-def _names(bucket: list[dict]) -> set[str]:
-    return {str(s.get("name")) for s in bucket}
+def _hit_names(hits: list[dict]) -> set[str]:
+    return {str(h.get("signal")) for h in hits}
 
 
-def test_interaction_to_span_minimal_fields():
-    ix = _ix(ref="ix_1", parent="ix_0", name="openai.chat", primitive=GENERATION, success=False)
+def test_interaction_to_span_warehouse_fields():
+    ix = _ix(ref="ix_1", parent="ix_0", name="openai.chat", primitive=GENERATION, success=False, input="q", output="")
     span = interaction_to_span(ix)
-    assert span == {
-        "type": "llm",
-        "name": "openai.chat",
-        "status": "failure",
-        "span_ref": "ix_1",
-        "parent_span_ref": "ix_0",
-    }
-    assert set(span.keys()) <= {"type", "name", "status", "span_ref", "parent_span_ref"}
+    assert span is not None
+    assert span["type"] == "llm"
+    assert span["name"] == "openai.chat"
+    assert span["status"] == "failure"
+    assert span["span_ref"] == "ix_1"
+    assert span["parent_span_ref"] == "ix_0"
+    assert isinstance(span.get("input"), dict)
+    assert isinstance(span.get("output"), dict)
+    assert isinstance(span.get("properties"), dict)
+    assert span["properties"]["kind"] == "llm"
 
 
 def test_llm_empty_input_output_and_error():
@@ -67,17 +69,19 @@ def test_llm_empty_input_output_and_error():
         _ix(ref="ix_1", parent="ix_0", name="openai.chat", primitive=GENERATION, input="", output="", success=True),
         _ix(ref="ix_2", parent="ix_0", name="openai.chat", primitive=GENERATION, input="hi", output="", success=False),
     ]
-    events = instrument_run(
+    events, hits = instrument_run(
         interactions=interactions,
         root_output="final",
         workflow_success=True,
     )
-    ctx = _names(events["context"])
-    assert "llm_empty_input" in ctx
-    assert "llm_empty_output" in ctx
-    assert "llm_error" in ctx
-    assert "runtime_failure" in ctx
-    assert "llm_provider_error_rate" in ctx
+    assert events["trigger"] == []
+    assert events["context"] == []
+    names = _hit_names(hits)
+    assert "llm_empty_input" in names
+    assert "llm_empty_output" in names
+    assert "llm_error" in names
+    assert "runtime_failure" in names
+    assert "llm_provider_error_rate" in names
 
 
 def test_tool_error_and_repeated_tool_error():
@@ -86,10 +90,12 @@ def test_tool_error_and_repeated_tool_error():
         _ix(ref="ix_1", parent="ix_0", name="search", primitive=EXTERNAL_INTERACTION, success=False),
         _ix(ref="ix_2", parent="ix_0", name="search", primitive=EXTERNAL_INTERACTION, success=False),
     ]
-    events = instrument_run(interactions=interactions, root_output="ok", workflow_success=True)
-    assert "tool_error" in _names(events["context"])
-    assert "used_tool" in _names(events["context"])
-    assert "repeated_tool_error" in _names(events["trigger"])
+    events, hits = instrument_run(interactions=interactions, root_output="ok", workflow_success=True)
+    assert events["trigger"] == []
+    names = _hit_names(hits)
+    assert "tool_error" in names
+    assert "used_tool" in names
+    assert "repeated_tool_error" in names
 
 
 def test_tool_loop_and_token_blowup_and_high_latency():
@@ -112,11 +118,11 @@ def test_tool_loop_and_token_blowup_and_high_latency():
         ),
         *tools,
     ]
-    events = instrument_run(interactions=interactions, root_output="ok", workflow_success=True)
-    ctx = _names(events["context"])
-    assert "tool_loop" in ctx
-    assert "high_latency" in ctx
-    assert "llm_token_blowup" in ctx
+    _, hits = instrument_run(interactions=interactions, root_output="ok", workflow_success=True)
+    names = _hit_names(hits)
+    assert "tool_loop" in names
+    assert "high_latency" in names
+    assert "llm_token_blowup" in names
 
 
 def test_output_truncated_safety_and_io_error():
@@ -149,11 +155,11 @@ def test_output_truncated_safety_and_io_error():
             output="RESOURCE_EXHAUSTED quota exceeded",
         ),
     ]
-    events = instrument_run(interactions=interactions, root_output="x", workflow_success=True)
-    ctx = _names(events["context"])
-    assert "output_truncated" in ctx
-    assert "safety_stop" in ctx
-    assert "io_error_in_output" in ctx
+    _, hits = instrument_run(interactions=interactions, root_output="x", workflow_success=True)
+    names = _hit_names(hits)
+    assert "output_truncated" in names
+    assert "safety_stop" in names
+    assert "io_error_in_output" in names
 
 
 def test_empty_final_response():
@@ -161,8 +167,8 @@ def test_empty_final_response():
         _ix(ref="ix_0", parent=None, name="Run", primitive=None, output=""),
         _ix(ref="ix_1", parent="ix_0", name="openai.chat", primitive=GENERATION, input="q", output="a"),
     ]
-    events = instrument_run(interactions=interactions, root_output="", workflow_success=True)
-    assert "empty_final_response" in _names(events["context"])
+    _, hits = instrument_run(interactions=interactions, root_output="", workflow_success=True)
+    assert "empty_final_response" in _hit_names(hits)
 
 
 def test_finalize_attaches_events_to_root_and_children():
@@ -175,11 +181,14 @@ def test_finalize_attaches_events_to_root_and_children():
     root = next(i for i in out if i["interaction_ref"] == "ix_0")
     child = next(i for i in out if i["interaction_ref"] == "ix_1")
     assert isinstance(root["events"], dict)
+    assert root["events"]["trigger"] == []
+    assert root["events"]["context"] == []
     assert set(root["events"]) == {"trigger", "context", "spans"}
     assert len(root["events"]["spans"]) == 2
-    assert "used_tool" in _names(root["events"]["context"])
+    assert "used_tool" in _hit_names(root.get("_signal_hits") or [])
     assert len(child["events"]["spans"]) == 1
     assert child["events"]["spans"][0]["span_ref"] == "ix_1"
+    assert isinstance(child["events"]["spans"][0].get("properties"), dict)
 
 
 def test_workflow_payload_includes_signals():
@@ -194,10 +203,13 @@ def test_workflow_payload_includes_signals():
         wf.output = "world"
     payload = wf.to_validate_payload()
     root = next(i for i in payload["interactions"] if not i.get("parent_interaction_ref"))
-    events = root["events"]
-    assert "used_tool" in _names(events["context"])
-    spans = events["spans"]
+    assert root["events"]["trigger"] == []
+    assert root["events"]["context"] == []
+    assert "used_tool" in _hit_names(root.get("_signal_hits") or [])
+    spans = root["events"]["spans"]
     assert {s["type"] for s in spans} == {"llm", "tool"}
     for s in spans:
-        assert set(s.keys()) <= {"type", "name", "status", "span_ref", "parent_span_ref"}
         assert s["status"] == "success"
+        assert isinstance(s.get("properties"), dict)
+        assert isinstance(s.get("input"), dict)
+        assert isinstance(s.get("output"), dict)
